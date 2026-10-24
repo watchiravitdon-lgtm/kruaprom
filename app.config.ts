@@ -1,0 +1,38 @@
+import "./scripts/load-env.js";
+import type { ExpoConfig } from "expo/config";
+
+const rawBundleId = "space.manus.kruaprom.t056175453750990";
+const bundleId = rawBundleId.replace(/[-_]/g, ".").replace(/[^a-zA-Z0-9.]/g, "").replace(/\.+/g, ".").replace(/^\.+|\.+$/g, "").toLowerCase().split(".").map((segment) => (/^[a-zA-Z]/.test(segment) ? segment : `x${segment}`)).join(".") || "space.manus.app";
+const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
+
+const publicRuntime = {
+  oauthPortalUrl: process.env.MANUS_OAUTH_PORTAL_URL ?? process.env.VITE_OAUTH_PORTAL_URL ?? process.env.EXPO_PUBLIC_OAUTH_PORTAL_URL ?? "",
+  oauthServerUrl: process.env.MANUS_OAUTH_API_URL ?? process.env.OAUTH_SERVER_URL ?? process.env.EXPO_PUBLIC_OAUTH_SERVER_URL ?? "",
+  appId: process.env.MANUS_PROJECT_ID ?? process.env.VITE_APP_ID ?? process.env.EXPO_PUBLIC_APP_ID ?? "",
+  apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? "",
+};
+
+const config: ExpoConfig & { logoUrl: string } = {
+  name: "ครัวพร้อม",
+  slug: "kruaprom",
+  version: "1.0.0",
+  extra: publicRuntime,
+  orientation: "portrait",
+  icon: "./assets/images/icon.png",
+  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519664024286124/QjLbpHDTlIUDyOnb.png",
+  scheme: `manus${timestamp}`,
+  userInterfaceStyle: "light",
+  ios: { supportsTablet: true, bundleIdentifier: bundleId, infoPlist: { ITSAppUsesNonExemptEncryption: false } },
+  android: {
+    adaptiveIcon: { backgroundColor: "#16624B", foregroundImage: "./assets/images/android-icon-foreground.png", backgroundImage: "./assets/images/android-icon-background.png", monochromeImage: "./assets/images/android-icon-monochrome.png" },
+    predictiveBackGestureEnabled: false,
+    package: bundleId,
+    permissions: ["POST_NOTIFICATIONS"],
+    intentFilters: [{ action: "VIEW", autoVerify: true, data: [{ scheme: `manus${timestamp}`, host: "*" }], category: ["BROWSABLE", "DEFAULT"] }],
+  },
+  web: { bundler: "metro", output: "static", favicon: "./assets/images/favicon.png" },
+  plugins: ["expo-asset", "expo-router", "expo-notifications", "expo-sharing", ["expo-splash-screen", { image: "./assets/images/splash-icon.png", imageWidth: 200, resizeMode: "contain", backgroundColor: "#FFFCF5" }], ["expo-build-properties", { android: { buildArchs: ["armeabi-v7a", "arm64-v8a"], minSdkVersion: 24 } }]],
+  experiments: { typedRoutes: true, reactCompiler: true },
+};
+
+export default config;

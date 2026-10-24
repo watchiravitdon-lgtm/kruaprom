@@ -1,0 +1,13 @@
+{
+  "routes": [
+    { "path": "/", "title": "วันนี้" },
+    { "path": "/recipes", "title": "สูตรอาหาร" },
+    { "path": "/plan", "title": "แผนมื้ออาหาร" },
+    { "path": "/shopping", "title": "รายการซื้อของ" },
+    { "path": "/settings", "title": "ตั้งค่า" },
+    { "path": "/recipe/:id", "title": "รายละเอียดสูตรอาหาร" },
+    { "path": "/recipe/form", "title": "จัดการสูตรอาหาร" },
+    { "path": "/dev/theme-lab", "title": "Theme Lab" },
+    { "path": "/oauth/callback", "title": "OAuth Callback" }
+  ]
+}

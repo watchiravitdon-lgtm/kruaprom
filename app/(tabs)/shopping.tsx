@@ -1,0 +1,37 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useMemo, useState } from "react";
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+
+import { AppScreen, EmptyState, ErrorRecovery, IconButton, LoadingState, OfflineBanner, palette, PrimaryButton, SectionHeading } from "@/components/krua-ui";
+import { formatQuantity, type ShoppingItem } from "@/lib/krua-data";
+import { useKrua } from "@/lib/krua-store";
+
+export default function ShoppingScreen() {
+  const { shoppingItems, isHydrating, offlineMode, setOfflineMode, saveError, retrySave, toggleShoppingItem, adjustShoppingItem, addShoppingItem, clearCheckedShopping, createShoppingFromPlan } = useKrua();
+  const [newItem, setNewItem] = useState("");
+  const groups = useMemo(() => shoppingItems.reduce<Record<string, ShoppingItem[]>>((acc, item) => { (acc[item.category] ??= []).push(item); return acc; }, {}), [shoppingItems]);
+  if (isHydrating) return <LoadingState />;
+  const done = shoppingItems.filter((item) => item.checked).length;
+  const progress = shoppingItems.length ? done / shoppingItems.length : 0;
+
+  return (
+    <AppScreen>
+      <View style={styles.header}><View><Text style={styles.kicker}>พร้อมก่อนออกจากบ้าน</Text><Text style={styles.title}>รายการซื้อของ</Text></View><IconButton icon="refresh-outline" label="รวมวัตถุดิบจากแผนอีกครั้ง" onPress={createShoppingFromPlan} soft /></View>
+      {offlineMode ? <OfflineBanner onReconnect={() => setOfflineMode(false)} /> : null}
+      {saveError ? <ErrorRecovery message={saveError} onRetry={() => void retrySave()} /> : null}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <View style={styles.progressCard}><View style={styles.progressTop}><View><Text style={styles.progressTitle}>{done === shoppingItems.length && shoppingItems.length ? "ซื้อครบแล้ว เยี่ยมเลย" : "ค่อย ๆ ติ๊กไปทีละรายการ"}</Text><Text style={styles.progressSub}>{done} จาก {shoppingItems.length} รายการเสร็จแล้ว</Text></View><View style={styles.progressValue}><Text style={styles.progressNumber}>{Math.round(progress * 100)}</Text><Text style={styles.progressPercent}>%</Text></View></View><View style={styles.track}><View style={[styles.fill, { width: `${progress * 100}%` }]} /></View></View>
+        <View style={styles.addRow}><TextInput value={newItem} onChangeText={setNewItem} placeholder="เพิ่มของที่ต้องซื้อ" placeholderTextColor="#92A19B" style={styles.addInput} returnKeyType="done" onSubmitEditing={() => { addShoppingItem(newItem); setNewItem(""); }} accessibilityLabel="เพิ่มรายการซื้อของ" /><TouchableOpacity style={styles.addButton} onPress={() => { addShoppingItem(newItem); setNewItem(""); }} accessibilityRole="button" accessibilityLabel="เพิ่มรายการ"><Ionicons name="add" size={22} color={palette.paper} /></TouchableOpacity></View>
+        {shoppingItems.length === 0 ? <EmptyState icon="cart-outline" title="รถเข็นยังว่างอยู่" detail="เพิ่มรายการเอง หรือให้ครัวพร้อมรวมวัตถุดิบจากแผนสัปดาห์" action={<PrimaryButton label="รวมจากแผนสัปดาห์" tone="mango" onPress={createShoppingFromPlan} icon="refresh-outline" />} /> : Object.entries(groups).map(([group, items]) => <View key={group}><SectionHeading title={group} />{items.map((item) => <View key={item.id} style={[styles.item, item.checked && styles.itemChecked]}><TouchableOpacity onPress={() => toggleShoppingItem(item.id)} accessibilityRole="checkbox" accessibilityState={{ checked: item.checked }} accessibilityLabel={`${item.name} ${item.checked ? "ซื้อแล้ว" : "ยังไม่ได้ซื้อ"}`} style={[styles.check, item.checked && styles.checkActive]}>{item.checked ? <Ionicons name="checkmark" size={16} color={palette.paper} /> : null}</TouchableOpacity><View style={{ flex: 1 }}><Text style={[styles.itemName, item.checked && styles.strike]}>{item.name}</Text><Text style={[styles.itemSource, item.checked && styles.strike]}>{item.source === "plan" ? "จากแผนอาหาร" : "เพิ่มเอง"}</Text></View><View style={styles.adjust}><TouchableOpacity onPress={() => adjustShoppingItem(item.id, -0.5)} hitSlop={7} accessibilityRole="button" accessibilityLabel={`ลดจำนวน ${item.name}`}><Ionicons name="remove-circle-outline" size={22} color={palette.slate} /></TouchableOpacity><Text style={styles.qty}>{formatQuantity(item.quantity)} {item.unit}</Text><TouchableOpacity onPress={() => adjustShoppingItem(item.id, 0.5)} hitSlop={7} accessibilityRole="button" accessibilityLabel={`เพิ่มจำนวน ${item.name}`}><Ionicons name="add-circle-outline" size={22} color={palette.forest} /></TouchableOpacity></View></View>)}</View>)}
+        {done > 0 ? <TouchableOpacity style={styles.clear} onPress={clearCheckedShopping} accessibilityRole="button" accessibilityLabel="ล้างรายการที่ซื้อแล้ว"><Ionicons name="trash-outline" size={16} color={palette.danger} /><Text style={styles.clearText}>ล้างรายการที่ซื้อแล้ว ({done})</Text></TouchableOpacity> : null}
+      </ScrollView>
+    </AppScreen>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: { paddingHorizontal: 20, paddingTop: 11, paddingBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, kicker: { color: palette.jade, fontSize: 12, fontWeight: "800", letterSpacing: 0.7 }, title: { color: palette.ink, fontSize: 29, fontWeight: "900", letterSpacing: -0.8, marginTop: 1 }, content: { paddingBottom: 28 },
+  progressCard: { marginHorizontal: 20, marginTop: 3, padding: 17, borderRadius: 23, backgroundColor: palette.ink }, progressTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, progressTitle: { color: palette.paper, fontSize: 16, fontWeight: "900" }, progressSub: { color: "#BCE0D0", fontSize: 12, marginTop: 4 }, progressValue: { flexDirection: "row", alignItems: "baseline" }, progressNumber: { color: palette.mango, fontSize: 27, fontWeight: "900" }, progressPercent: { color: palette.mango, fontSize: 13, fontWeight: "800" }, track: { height: 7, borderRadius: 4, backgroundColor: "#31584C", marginTop: 15, overflow: "hidden" }, fill: { height: "100%", borderRadius: 4, backgroundColor: palette.mango },
+  addRow: { marginHorizontal: 20, marginTop: 14, flexDirection: "row", gap: 8 }, addInput: { height: 49, flex: 1, paddingHorizontal: 14, borderRadius: 15, backgroundColor: palette.paper, borderWidth: 1, borderColor: palette.line, color: palette.ink, fontSize: 14 }, addButton: { width: 49, height: 49, borderRadius: 15, backgroundColor: palette.forest, alignItems: "center", justifyContent: "center" },
+  item: { marginHorizontal: 20, marginBottom: 8, padding: 13, borderRadius: 17, backgroundColor: palette.paper, borderWidth: 1, borderColor: palette.line, flexDirection: "row", alignItems: "center", gap: 10 }, itemChecked: { backgroundColor: palette.soft, borderColor: "#CDE7D9" }, check: { width: 27, height: 27, borderRadius: 9, borderWidth: 1.5, borderColor: "#B8C8C0", alignItems: "center", justifyContent: "center" }, checkActive: { backgroundColor: palette.jade, borderColor: palette.jade }, itemName: { color: palette.ink, fontSize: 14, fontWeight: "800" }, itemSource: { color: palette.slate, fontSize: 10, marginTop: 2 }, strike: { color: "#8CA19A", textDecorationLine: "line-through" }, adjust: { flexDirection: "row", alignItems: "center", gap: 5 }, qty: { color: palette.ink, fontSize: 11, fontWeight: "700", minWidth: 38, textAlign: "center" }, clear: { alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 6, padding: 12, marginTop: 9 }, clearText: { color: palette.danger, fontSize: 13, fontWeight: "800" },
+});
